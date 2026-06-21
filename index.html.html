@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOIR — The Scent of Shadows</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@200;300;400&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --black:     #050407;
+    --deep:      #0c0914;
+    --purple1:   #1a0a2e;
+    --purple2:   #2d1057;
+    --gold:      #c9a84c;
+    --gold-lt:   #e8c97a;
+    --gold-pale: #f5e6b8;
+    --white:     #f0ead8;
+    --glass-bg:  rgba(255,255,255,0.04);
+    --glass-bd:  rgba(201,168,76,0.18);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 200;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* ── CUSTOM CURSOR ── */
+  #cursor {
+    position: fixed; top: 0; left: 0; z-index: 9999;
+    width: 10px; height: 10px;
+    background: var(--gold);
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%,-50%);
+    transition: transform .1s ease, width .3s ease, height .3s ease, opacity .3s ease;
+    mix-blend-mode: screen;
+  }
+  #cursor-ring {
+    position: fixed; top: 0; left: 0; z-index: 9998;
+    width: 36px; height: 36px;
+    border: 1px solid rgba(201,168,76,0.5);
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%,-50%);
+    transition: transform .18s ease, width .3s ease, height .3s ease;
+  }
+
+  /* ── CANVAS PARTICLES ── */
+  #particle-canvas {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 60px;
+    background: linear-gradient(to bottom, rgba(5,4,7,0.9), transparent);
+  }
+  .nav-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 300; letter-spacing: .35em;
+    color: var(--gold);
+    text-decoration: none;
+  }
+  .nav-links { display: flex; gap: 48px; list-style: none; }
+  .nav-links a {
+    font-size: 10px; letter-spacing: .28em; text-transform: uppercase;
+    color: rgba(240,234,216,0.6); text-decoration: none;
+    transition: color .3s;
+  }
+  .nav-links a:hover { color: var(--gold); }
+
+  /* ── HERO ── */
+  #hero {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background: radial-gradient(ellipse 80% 80% at 50% 40%, #1e0a3c 0%, #0c0914 55%, #050407 100%);
+  }
+  .hero-bg::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 40% 60% at 50% 50%, rgba(90,20,150,0.25) 0%, transparent 70%);
+  }
+
+  .hero-eyebrow {
+    font-size: 9px; letter-spacing: .55em; text-transform: uppercase;
+    color: var(--gold); opacity: .8;
+    margin-bottom: 20px;
+    position: relative; z-index: 2;
+  }
+
+  .hero-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(80px, 16vw, 200px);
+    font-weight: 300; line-height: .88;
+    letter-spacing: .08em;
+    color: transparent;
+    background: linear-gradient(160deg, var(--gold-pale) 0%, var(--gold) 40%, #8b5e1a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    position: relative; z-index: 2;
+    user-select: none;
+  }
+
+  .hero-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(16px, 2.5vw, 26px);
+    font-weight: 300;
+    letter-spacing: .15em;
+    color: rgba(240,234,216,0.55);
+    margin-top: 18px;
+    position: relative; z-index: 2;
+  }
+
+  /* ── BOTTLE WRAP ── */
+  #bottle-wrap {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    will-change: transform;
+  }
+  #bottle-img {
+    width: clamp(320px, 40vw, 560px);
+    mix-blend-mode: screen;
+    filter: brightness(1.1) contrast(1.05);
+    transform-origin: center center;
+    will-change: transform;
+    transition: filter .3s;
+  }
+
+  .hero-scroll-hint {
+    position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+    z-index: 10;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    font-size: 8px; letter-spacing: .4em; text-transform: uppercase;
+    color: rgba(201,168,76,0.5);
+    animation: fadeUpDown 2.5s ease-in-out infinite;
+  }
+  .scroll-line {
+    width: 1px; height: 50px;
+    background: linear-gradient(to bottom, var(--gold), transparent);
+  }
+  @keyframes fadeUpDown {
+    0%,100% { opacity:.4; transform: translateX(-50%) translateY(0); }
+    50% { opacity:.9; transform: translateX(-50%) translateY(8px); }
+  }
+
+  /* ── DIVIDER ── */
+  .gold-divider {
+    width: 120px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 0 auto 60px;
+  }
+
+  /* ── SECTION BASE ── */
+  section { position: relative; z-index: 2; }
+
+  /* ── PHILOSOPHY ── */
+  #philosophy {
+    padding: 140px 60px;
+    background: linear-gradient(180deg, var(--black) 0%, var(--purple1) 60%, var(--black) 100%);
+    text-align: center;
+  }
+  .section-label {
+    font-size: 8px; letter-spacing: .55em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 40px;
+  }
+  .philosophy-quote {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(28px, 4.5vw, 58px);
+    font-weight: 300; font-style: italic;
+    line-height: 1.4; letter-spacing: .03em;
+    color: var(--white);
+    max-width: 900px; margin: 0 auto 50px;
+  }
+  .philosophy-body {
+    font-size: 12px; letter-spacing: .12em; line-height: 2.2;
+    color: rgba(240,234,216,0.45);
+    max-width: 540px; margin: 0 auto;
+  }
+
+  /* ── NOTES ── */
+  #notes {
+    padding: 120px 60px;
+    background: var(--black);
+  }
+  .notes-header { text-align: center; margin-bottom: 80px; }
+  .notes-header h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(36px, 5vw, 64px); font-weight: 300;
+    color: var(--gold); letter-spacing: .12em;
+    margin-bottom: 16px;
+  }
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    max-width: 1100px; margin: 0 auto;
+  }
+  .note-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-bd);
+    border-radius: 2px;
+    padding: 48px 36px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: relative; overflow: hidden;
+    transition: border-color .4s, transform .4s;
+  }
+  .note-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0; transition: opacity .4s;
+  }
+  .note-card:hover { border-color: rgba(201,168,76,0.45); transform: translateY(-6px); }
+  .note-card:hover::before { opacity: 1; }
+  .note-tier {
+    font-size: 8px; letter-spacing: .5em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 20px;
+  }
+  .note-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 300;
+    color: var(--white); letter-spacing: .08em;
+    margin-bottom: 16px;
+  }
+  .note-desc {
+    font-size: 11px; letter-spacing: .1em; line-height: 2;
+    color: rgba(240,234,216,0.45);
+  }
+  .note-glyph {
+    position: absolute; bottom: 20px; right: 24px;
+    font-size: 60px; opacity: .06;
+    font-family: serif; line-height: 1;
+    color: var(--gold);
+  }
+
+  /* ── EXPERIENCE ── */
+  #experience {
+    padding: 140px 60px;
+    background: linear-gradient(180deg, var(--black) 0%, #180835 50%, var(--black) 100%);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 80px;
+    max-width: 1300px; margin: 0 auto;
+  }
+  .exp-img-wrap {
+    position: relative;
+  }
+  .exp-img-wrap img {
+    width: 100%; border-radius: 2px;
+    mix-blend-mode: luminosity;
+    filter: brightness(.7) sepia(.3);
+    display: block;
+  }
+  .exp-img-wrap::before {
+    content: '';
+    position: absolute; inset: -1px;
+    border: 1px solid var(--glass-bd);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .exp-img-wrap::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(90,20,160,0.3), transparent 60%);
+    border-radius: 2px;
+  }
+  .exp-text .section-label { text-align: left; }
+  .exp-text h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(36px, 4vw, 54px); font-weight: 300;
+    color: var(--white); letter-spacing: .06em;
+    line-height: 1.2; margin-bottom: 30px;
+  }
+  .exp-text h2 em {
+    font-style: italic; color: var(--gold);
+  }
+  .exp-text p {
+    font-size: 12px; letter-spacing: .1em; line-height: 2.3;
+    color: rgba(240,234,216,0.45);
+    margin-bottom: 20px;
+  }
+  .exp-stats {
+    display: flex; gap: 48px; margin-top: 48px;
+    padding-top: 40px;
+    border-top: 1px solid rgba(201,168,76,0.15);
+  }
+  .stat-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 42px; font-weight: 300; color: var(--gold);
+    letter-spacing: .05em; line-height: 1;
+  }
+  .stat-label {
+    font-size: 8px; letter-spacing: .35em; text-transform: uppercase;
+    color: rgba(240,234,216,0.4); margin-top: 8px;
+  }
+
+  /* ── CTA ── */
+  #acquire {
+    padding: 160px 60px;
+    text-align: center;
+    background: var(--black);
+    position: relative; overflow: hidden;
+  }
+  #acquire::before {
+    content: '';
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(80,20,140,0.25) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .acquire-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(40px, 6vw, 80px); font-weight: 300;
+    color: var(--white); letter-spacing: .1em; margin-bottom: 18px;
+    position: relative; z-index: 1;
+  }
+  .acquire-sub {
+    font-size: 11px; letter-spacing: .25em; text-transform: uppercase;
+    color: rgba(240,234,216,0.4); margin-bottom: 60px;
+    position: relative; z-index: 1;
+  }
+  .btn-noir {
+    display: inline-block;
+    padding: 18px 56px;
+    border: 1px solid var(--gold);
+    font-size: 10px; letter-spacing: .4em; text-transform: uppercase;
+    color: var(--gold);
+    text-decoration: none;
+    position: relative; z-index: 1;
+    overflow: hidden;
+    cursor: none;
+    transition: color .4s;
+  }
+  .btn-noir::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--gold);
+    transform: translateX(-101%);
+    transition: transform .4s cubic-bezier(.76,0,.24,1);
+  }
+  .btn-noir:hover { color: var(--black); }
+  .btn-noir:hover::before { transform: translateX(0); }
+  .btn-text { position: relative; z-index: 1; }
+
+  .price-display {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 300; letter-spacing: .2em;
+    color: rgba(201,168,76,0.6);
+    margin-top: 40px;
+    position: relative; z-index: 1;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 60px;
+    border-top: 1px solid rgba(201,168,76,0.1);
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; z-index: 2;
+    background: var(--black);
+  }
+  footer .logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 300; letter-spacing: .35em;
+    color: var(--gold);
+  }
+  footer p {
+    font-size: 9px; letter-spacing: .25em; text-transform: uppercase;
+    color: rgba(240,234,216,0.25);
+  }
+
+  /* ── REVEAL ANIMATION ── */
+  .reveal {
+    opacity: 0; transform: translateY(40px);
+    transition: opacity .9s cubic-bezier(.25,.46,.45,.94), transform .9s cubic-bezier(.25,.46,.45,.94);
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-delay-1 { transition-delay: .15s; }
+  .reveal-delay-2 { transition-delay: .3s; }
+  .reveal-delay-3 { transition-delay: .45s; }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 500;
+    opacity: .025;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 200px;
+  }
+
+  @media (max-width: 768px) {
+    nav { padding: 20px 24px; }
+    .nav-links { display: none; }
+    #experience { grid-template-columns: 1fr; padding: 80px 24px; }
+    .notes-grid { grid-template-columns: 1fr; }
+    #notes, #philosophy, #acquire { padding: 80px 24px; }
+    footer { flex-direction: column; gap: 20px; text-align: center; padding: 40px 24px; }
+    .exp-stats { gap: 32px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="particle-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">NOIR</a>
+  <ul class="nav-links">
+    <li><a href="#philosophy">Philosophy</a></li>
+    <li><a href="#notes">Composition</a></li>
+    <li><a href="#experience">Heritage</a></li>
+    <li><a href="#acquire">Acquire</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div id="bottle-wrap">
+    <img id="bottle-img"
+      src="https://images.pexels.com/photos/3059609/pexels-photo-3059609.jpeg"
+      alt="NOIR Perfume Bottle"
+      crossorigin="anonymous">
+  </div>
+  <p class="hero-eyebrow">Maison Noir · Est. 1923</p>
+  <h1 class="hero-title">NOIR</h1>
+  <p class="hero-sub">The Scent of Shadows</p>
+  <div class="hero-scroll-hint">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- PHILOSOPHY -->
+<section id="philosophy">
+  <p class="section-label reveal">The Art of Darkness</p>
+  <div class="gold-divider reveal reveal-delay-1"></div>
+  <blockquote class="philosophy-quote reveal reveal-delay-1">
+    "Darkness is not the absence of light — it is the space where desire is born, where memory dissolves into sensation, where a single breath can alter everything."
+  </blockquote>
+  <div class="gold-divider reveal reveal-delay-2" style="margin-top:50px;margin-bottom:40px;"></div>
+  <p class="philosophy-body reveal reveal-delay-2">
+    NOIR was conceived in the candlelit ateliers of Grasse, where master perfumer Élise Fontaine spent seven years composing a fragrance that captures the precise moment when dusk surrenders to night. Each bottle contains 312 hand-selected botanical extracts, calibrated to evolve through three acts over twelve hours on the skin.
+  </p>
+</section>
+
+<!-- NOTES -->
+<section id="notes">
+  <div class="notes-header">
+    <p class="section-label reveal">Olfactive Pyramid</p>
+    <h2 class="reveal reveal-delay-1">The Composition</h2>
+    <div class="gold-divider reveal reveal-delay-2"></div>
+  </div>
+  <div class="notes-grid">
+    <div class="note-card reveal">
+      <p class="note-tier">Top Notes · 0–30 min</p>
+      <h3 class="note-name">The Opening</h3>
+      <p class="note-desc">Black cardamom and burnt violet ignite the first impression — a sharp, electric provocation that announces itself without apology.</p>
+      <span class="note-glyph">I</span>
+    </div>
+    <div class="note-card reveal reveal-delay-1">
+      <p class="note-tier">Heart Notes · 1–6 hrs</p>
+      <h3 class="note-name">The Revelation</h3>
+      <p class="note-desc">Midnight rose absolute, aged labdanum, and smoked iris emerge like a secret finally spoken aloud in the dark.</p>
+      <span class="note-glyph">II</span>
+    </div>
+    <div class="note-card reveal reveal-delay-2">
+      <p class="note-tier">Base Notes · 6–12 hrs</p>
+      <h3 class="note-name">The Memory</h3>
+      <p class="note-desc">Vetiver, black amber, and aged Cambodian oud settle into the skin, becoming something indistinguishable from the wearer themselves.</p>
+      <span class="note-glyph">III</span>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERIENCE / HERITAGE -->
+<section style="background:linear-gradient(180deg,var(--black) 0%,#180835 50%,var(--black) 100%); position:relative; z-index:2;">
+  <div id="experience">
+    <div class="exp-img-wrap reveal">
+      <img src="https://images.pexels.com/photos/3059609/pexels-photo-3059609.jpeg"
+           alt="NOIR bottle detail" crossorigin="anonymous">
+    </div>
+    <div class="exp-text">
+      <p class="section-label reveal">A Century of Shadow</p>
+      <h2 class="reveal reveal-delay-1">Born from <em>Obsession</em>,<br>Refined by Time</h2>
+      <p class="reveal reveal-delay-2">In 1923, Jules Fontaine returned from the Orient carrying a small vial of Cambodian oud that had taken three decades to mature. He declared it would form the backbone of a fragrance unlike anything the Western world had known — a scent that would take another twenty years to perfect.</p>
+      <p class="reveal reveal-delay-2">NOIR is produced in annual batches of 1,923 numbered bottles, each signed by the current master perfumer. No digital records are kept. Every bottle is a singular object.</p>
+      <div class="exp-stats reveal reveal-delay-3">
+        <div>
+          <div class="stat-num">1,923</div>
+          <div class="stat-label">Bottles per year</div>
+        </div>
+        <div>
+          <div class="stat-num">312</div>
+          <div class="stat-label">Botanical extracts</div>
+        </div>
+        <div>
+          <div class="stat-num">12h</div>
+          <div class="stat-label">Skin evolution</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ACQUIRE -->
+<section id="acquire">
+  <p class="section-label reveal">Private Acquisition</p>
+  <h2 class="acquire-title reveal reveal-delay-1">Own the Night</h2>
+  <p class="acquire-sub reveal reveal-delay-2">100ml Eau de Parfum · Limited Annual Edition</p>
+  <a href="#" class="btn-noir reveal reveal-delay-3">
+    <span class="btn-text">Request Acquisition</span>
+  </a>
+  <div class="price-display reveal reveal-delay-3">From $980 · Worldwide Delivery</div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span class="logo">NOIR</span>
+  <p>© 2026 Maison Noir. All rights reserved.</p>
+  <p>Grasse · Paris · New York · Tokyo</p>
+</footer>
+
+<script>
+/* ── CURSOR ── */
+const cursor = document.getElementById('cursor');
+const ring   = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+(function animateCursor() {
+  rx += (mx - rx) * 0.14;
+  ry += (my - ry) * 0.14;
+  cursor.style.left = mx + 'px';
+  cursor.style.top  = my + 'px';
+  ring.style.left   = rx + 'px';
+  ring.style.top    = ry + 'px';
+  requestAnimationFrame(animateCursor);
+})();
+
+document.querySelectorAll('a, button').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cursor.style.width = '20px';
+    cursor.style.height = '20px';
+    ring.style.width = '60px';
+    ring.style.height = '60px';
+  });
+  el.addEventListener('mouseleave', () => {
+    cursor.style.width = '10px';
+    cursor.style.height = '10px';
+    ring.style.width = '36px';
+    ring.style.height = '36px';
+  });
+});
+
+/* ── GOLD PARTICLES ── */
+const canvas = document.getElementById('particle-canvas');
+const ctx    = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const GOLD_SHADES = ['rgba(201,168,76,', 'rgba(232,201,122,', 'rgba(245,230,184,', 'rgba(160,120,40,'];
+
+function Particle() {
+  this.reset = function() {
+    this.x   = Math.random() * W;
+    this.y   = Math.random() * H + H;
+    this.vx  = (Math.random() - .5) * .4;
+    this.vy  = -(Math.random() * .6 + .2);
+    this.r   = Math.random() * 1.8 + .4;
+    this.alpha = Math.random() * .6 + .1;
+    this.shade = GOLD_SHADES[Math.floor(Math.random() * GOLD_SHADES.length)];
+    this.twinkle = Math.random() * Math.PI * 2;
+    this.twinkleSpeed = .02 + Math.random() * .03;
+  };
+  this.reset();
+  this.y = Math.random() * H; // scatter on init
+  this.update = function() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.twinkle += this.twinkleSpeed;
+    if (this.y < -10) this.reset();
+  };
+  this.draw = function() {
+    const a = this.alpha * (.6 + .4 * Math.sin(this.twinkle));
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = this.shade + a + ')';
+    ctx.fill();
+  };
+}
+
+for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+function animateParticles() {
+  ctx.clearRect(0, 0, W, H);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+/* ── 3D PARALLAX BOTTLE ── */
+const bottleWrap = document.getElementById('bottle-wrap');
+const bottleImg  = document.getElementById('bottle-img');
+let scrollY = 0;
+let targetScale = 1, targetRotX = 0, targetRotY = 0, targetRotZ = 0, targetTransY = 0;
+let currentScale = 1, currentRotX = 0, currentRotY = 0, currentRotZ = 0, currentTransY = 0;
+
+document.addEventListener('mousemove', e => {
+  const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+  const dx = (e.clientX - cx) / cx;
+  const dy = (e.clientY - cy) / cy;
+  targetRotY = dx * 18;
+  targetRotX = -dy * 12;
+});
+
+window.addEventListener('scroll', () => { scrollY = window.scrollY; });
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+(function animateBottle() {
+  const hero = document.getElementById('hero');
+  const heroH = hero.offsetHeight;
+  const progress = Math.min(scrollY / heroH, 1);
+
+  const scrollScale = 1 + progress * .55;
+  const scrollTiltZ = progress * 14;
+  const scrollTiltX = progress * 20;
+  const transY      = progress * -60;
+
+  currentScale  = lerp(currentScale,  scrollScale,  .06);
+  currentRotX   = lerp(currentRotX,   targetRotX + scrollTiltX, .06);
+  currentRotY   = lerp(currentRotY,   targetRotY,   .06);
+  currentRotZ   = lerp(currentRotZ,   scrollTiltZ,  .06);
+  currentTransY = lerp(currentTransY, transY,        .06);
+
+  bottleImg.style.transform =
+    `perspective(1200px)
+     translateY(${currentTransY}px)
+     rotateX(${currentRotX}deg)
+     rotateY(${currentRotY}deg)
+     rotateZ(${currentRotZ}deg)
+     scale(${currentScale})`;
+
+  // parallax the wrapper itself slightly slower
+  bottleWrap.style.transform = `translateY(${scrollY * .35}px)`;
+
+  // fade bottle as we scroll past hero
+  bottleImg.style.opacity = Math.max(1 - progress * 1.4, 0);
+
+  requestAnimationFrame(animateBottle);
+})();
+
+/* ── SCROLL REVEAL ── */
+const revealEls = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: .12 });
+revealEls.forEach(el => io.observe(el));
+
+/* ── HERO TITLE SHIMMER ON SCROLL ── */
+const heroTitle = document.querySelector('.hero-title');
+window.addEventListener('scroll', () => {
+  const p = Math.min(window.scrollY / (window.innerHeight * .6), 1);
+  heroTitle.style.opacity = 1 - p;
+  heroTitle.style.transform = `translateY(${p * -40}px)`;
+});
+</script>
+</body>
+</html>
